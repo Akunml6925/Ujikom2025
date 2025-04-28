@@ -23,7 +23,9 @@ const firebaseConfig = {
   measurementId: "G-NKKFY4X1ZC"
 };
 // Inisialisasi Firebase
-  // Ambil data tugas dari localStorage
+  // Ambil data tugas dari localStoragfor (var i = 0; i < list.length; i++) {
+      // Tab to edit
+  
 let tugas = JSON.parse(localStorage.getItem('tugas')) || [];
 
 // Tampilkan tugas
