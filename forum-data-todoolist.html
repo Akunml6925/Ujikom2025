@@ -35,18 +35,5 @@
     </main>
 
 <script type="module" src="main.js"></script>
-   <script type="module">
-     import { tambahtodoolist } from './main.js';
-     
-     let tombolTambah = document.getElementById('tombol-tambah');
-     let elemenNamatugas = document.getElementById('input-Namatugas');
-     let elemenprioritas = document.getElementById('input-prioritas');
-     let elementanggal = document.getElementById('input-tanggal');
-     tombolTambah.addEventListener('click', async function (e) {
-       e.preventDefault();
-       await tambahtodoolist(elemennamatugas.value, elemenprioritas.value, elementanggal.value);
-       window.location.href = 'index.html'
-     })
-  </script>
 </body>
 </html>

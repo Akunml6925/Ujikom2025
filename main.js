@@ -7,12 +7,12 @@ import {
   getDoc,
   deleteDoc,
   doc,
+  updateDoc,
   query,
-  orderBy,
-  updateDoc
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Konfigurasi Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyA-wvBGzlYI9NHjVZBq7wbUHtEWrN3AFI8",
   authDomain: "pasarbarokah-56d6c.firebaseapp.com",
@@ -22,21 +22,26 @@ const firebaseConfig = {
   appId: "1:316348641371:web:5ad38a561e7d73744acf7e",
   measurementId: "G-NKKFY4X1ZC"
 };
-// Inisialisasi Firebase
-  // Ambil data tugas dari localStoragfor (var i = 0; i < list.length; i++) {
-      // Tab to edit
-  
-let tugas = JSON.parse(localStorage.getItem('tugas')) || [];
 
-// Tampilkan tugas
-function tampilkanTugas() {
+// Inisialisasi Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Fungsi tampilkan tugas dari Firestore
+async function tampilkanTugas() {
     const belumSelesai = document.getElementById('belum-selesai')?.querySelector('tbody');
     const telahSelesai = document.getElementById('telah-selesai')?.querySelector('tbody');
 
     if (belumSelesai) belumSelesai.innerHTML = '';
     if (telahSelesai) telahSelesai.innerHTML = '';
 
-    tugas.forEach((item, index) => {
+    const q = query(collection(db, 'todoolist'), orderBy('tanggal'));
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach(docSnap => {
+        const item = docSnap.data();
+        const id = docSnap.id;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${item.nama}</td>
@@ -44,15 +49,16 @@ function tampilkanTugas() {
             <td>${item.status}</td>
             <td>${item.tanggal}</td>
             <td>
-                <button onclick="tandaiSelesai(${index})" class="btn-aksi selesai">Tandai Selesai</button>
-                <button onclick="editTugas(${index})" class="btn-aksi edit">Edit</button>
-                <button onclick="hapusTugas(${index})" class="btn-aksi hapus">Hapus</button>
+                <button onclick="tandaiSelesai('${id}')" class="btn-aksi selesai">Tandai Selesai</button>
+                <button onclick="editTugas('${id}')" class="btn-aksi edit">Edit</button>
+                <button onclick="hapusTugas('${id}')" class="btn-aksi hapus">Hapus</button>
             </td>
         `;
+
         if (item.status === 'Belum Selesai') {
-            belumSelesai.appendChild(tr);
+            belumSelesai?.appendChild(tr);
         } else {
-            telahSelesai.appendChild(tr);
+            telahSelesai?.appendChild(tr);
         }
     });
 }
@@ -60,55 +66,72 @@ function tampilkanTugas() {
 // Tambah tugas baru
 const formTugas = document.getElementById('form-tugas');
 if (formTugas) {
-    formTugas.addEventListener('submit', function(e) {
+    formTugas.addEventListener('submit', async function(e) {
         e.preventDefault();
         const nama = this.nama.value;
         const prioritas = this.prioritas.value;
         const tanggal = this.tanggal.value;
-        tugas.push({ nama, prioritas, tanggal, status: 'Belum Selesai' });
-        localStorage.setItem('tugas', JSON.stringify(tugas));
+        await addDoc(collection(db, 'todoolist'), {
+            nama,
+            prioritas,
+            tanggal,
+            status: 'Belum Selesai'
+        });
         window.location.href = 'index.html';
     });
 }
 
-// Edit tugas
-function editTugas(index) {
-    localStorage.setItem('editIndex', index);
+// Edit tugas - Simpan ID ke localStorage untuk ubah
+function editTugas(id) {
+    localStorage.setItem('editId', id);
     window.location.href = 'ubah-todoolist.html';
 }
- window.editTugas = editTugas;
+window.editTugas = editTugas;
 
-// Ubah tugas
+// Form ubah tugas
 const formUbahTugas = document.getElementById('form-ubah-tugas');
 if (formUbahTugas) {
-    const index = localStorage.getItem('editIndex');
-    if (index !== null) {
-        formUbahTugas.nama.value = tugas[index].nama;
-        formUbahTugas.prioritas.value = tugas[index].prioritas;
-        formUbahTugas.tanggal.value = tugas[index].tanggal;
+    const id = localStorage.getItem('editId');
+    if (id) {
+        (async () => {
+            const docRef = doc(db, 'todoolist', id);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                formUbahTugas.nama.value = data.nama;
+                formUbahTugas.prioritas.value = data.prioritas;
+                formUbahTugas.tanggal.value = data.tanggal;
+            }
+        })();
     }
-    formUbahTugas.addEventListener('submit', function(e) {
+
+    formUbahTugas.addEventListener('submit', async function(e) {
         e.preventDefault();
-        tugas[index].nama = this.nama.value;
-        tugas[index].prioritas = this.prioritas.value;
-        tugas[index].tanggal = this.tanggal.value;
-        localStorage.setItem('tugas', JSON.stringify(tugas));
-        localStorage.removeItem('editIndex');
+        const docRef = doc(db, 'todoolist', id);
+        await updateDoc(docRef, {
+            nama: this.nama.value,
+            prioritas: this.prioritas.value,
+            tanggal: this.tanggal.value
+        });
+        localStorage.removeItem('editId');
         window.location.href = 'index.html';
     });
 }
+
 // Tandai selesai
-function tandaiSelesai(index) {
-    tugas[index].status = 'Selesai';
-    localStorage.setItem('tugas', JSON.stringify(tugas));
+async function tandaiSelesai(id) {
+    const docRef = doc(db, 'todoolist', id);
+    await updateDoc(docRef, {
+        status: 'Selesai'
+    });
     tampilkanTugas();
 }
- window.tandaiSelesai = tandaiSelesai;
+window.tandaiSelesai = tandaiSelesai;
 
 // Hapus tugas
-function hapusTugas(index) {
-    tugas.splice(index, 1);
-    localStorage.setItem('tugas', JSON.stringify(tugas));
+async function hapusTugas(id) {
+    const docRef = doc(db, 'todoolist', id);
+    await deleteDoc(docRef);
     tampilkanTugas();
 }
 window.hapusTugas = hapusTugas;
